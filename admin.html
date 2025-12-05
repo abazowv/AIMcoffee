@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIM Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+
+<div class="admin-container">
+    <div id="login-screen" class="admin-card login-card">
+        <h1>AIM Admin</h1>
+        <p style="color: var(--text-muted); margin-bottom: 30px;">Вход в панель управления</p>
+        <input type="password" id="admin-pass" placeholder="Пароль (12345)" class="admin-input big-input" onkeyup="if(event.key === 'Enter') checkPassword()">
+        <button onclick="checkPassword()" class="admin-btn primary-btn" style="width: 100%;">Войти</button>
+        <p id="login-error" style="color: var(--danger); margin-top: 15px; display: none;">Неверный пароль</p>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+        <header class="admin-header">
+            <h2 style="color: var(--accent);">Панель управления Меню</h2>
+            <button onclick="logout()" class="admin-btn text-btn">Выйти</button>
+        </header>
+
+        <section class="admin-section admin-card">
+            <div class="section-header">
+                <h3>📁 Управление Категориями</h3>
+            </div>
+
+            <div class="form-card">
+                <h4>Добавить новую категорию</h4>
+                <div class="form-grid">
+                    <input type="text" id="cat-name-ru" placeholder="Название (RU)" class="admin-input">
+                    <input type="text" id="cat-name-en" placeholder="Name (EN)" class="admin-input">
+                    <input type="text" id="cat-image" placeholder="Ссылка на картинку" class="admin-input full-grid">
+                    <button onclick="addCategory()" class="admin-btn primary-btn full-grid">Добавить Категорию</button>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 20px;">Существующие категории:</h4>
+            <div id="admin-categories-list" class="admin-list">
+                <div class="empty-state" id="empty-categories-state">Категорий пока нет.</div>
+            </div>
+        </section>
+
+        <section id="items-section" class="admin-section hidden admin-card" style="margin-top: 30px;">
+            <div class="section-header">
+                <h3>☕️ Товары в категории: <span id="current-cat-name" style="color: var(--accent);">...</span></h3>
+            </div>
+
+            <div class="form-card">
+                <h4>Добавить новый товар</h4>
+                <div class="form-grid">
+                    <input type="text" id="item-name-ru" placeholder="Название (RU)" class="admin-input">
+                    <input type="text" id="item-name-en" placeholder="Name (EN)" class="admin-input">
+                    <input type="text" id="item-desc-ru" placeholder="Описание (RU)" class="admin-input full-grid">
+                    <input type="text" id="item-desc-en" placeholder="Description (EN)" class="admin-input full-grid">
+                    <input type="number" id="item-price" placeholder="Цена (250)" class="admin-input">
+                    <input type="text" id="item-image" placeholder="Ссылка на картинку" class="admin-input">
+                    <button onclick="addItem()" class="admin-btn primary-btn full-grid">Добавить Товар</button>
+                </div>
+            </div>
+
+            <h4 style="margin-top: 20px;">Список товаров:</h4>
+            <div id="admin-items-list" class="admin-list">
+                <div class="empty-state" id="empty-items-state">В этой категории пока нет товаров.</div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<script>
+    let currentCatId = null;
+
+    // === ЛОГИКА ВХОДА ===
+    function checkPassword() {
+        const pass = document.getElementById('admin-pass').value;
+        const errorMsg = document.getElementById('login-error');
+
+        // Проверка чисто на клиенте (безопасно, т.к. это админка для локального меню)
+        if(pass === '12345') {
+            localStorage.setItem('adminLoggedIn', 'true');
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('admin-panel').classList.remove('hidden');
+            loadCategories(); // Загружаем данные только после входа
+        } else {
+            errorMsg.style.display = 'block';
+            errorMsg.textContent = "Неверный пароль!";
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('adminLoggedIn');
+        location.reload();
+    }
+
+    // Проверка статуса входа при загрузке страницы
+    window.onload = function() {
+        if(localStorage.getItem('adminLoggedIn') === 'true') {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('admin-panel').classList.remove('hidden');
+            loadCategories();
+        }
+    };
+
+    // === РАБОТА С ДАННЫМИ ===
+
+    async function loadCategories() {
+        try {
+            const res = await fetch('/api/categories');
+            const categories = await res.json();
+            const list = document.getElementById('admin-categories-list');
+            list.innerHTML = '';
+
+            if (categories.length === 0) {
+                list.innerHTML = '<div class="empty-state">Категорий пока нет.</div>';
+                return;
+            }
+
+            categories.forEach(cat => {
+                const div = document.createElement('div');
+                div.className = 'admin-list-item';
+                div.innerHTML = `
+                    <img src="${cat.image || 'https://via.placeholder.com/60?text=Cat'}" onerror="this.onerror=null; this.src='https://via.placeholder.com/60?text=Cat'">
+                    <div class="item-details">
+                        <span class="ru">${cat.name_ru}</span>
+                        <span class="en" style="font-style: italic;">${cat.name_en}</span>
+                    </div>
+                    <button onclick="selectCategory(${cat.id}, '${cat.name_ru.replace(/'/g, "\\'")}')" class="admin-btn primary-btn icon-btn" style="margin-right: 10px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-folder-open"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                    </button>
+                    <button onclick="deleteCategory(${cat.id})" class="admin-btn delete-btn icon-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                `;
+                list.appendChild(div);
+            });
+        } catch (e) {
+            console.error(e);
+            list.innerHTML = '<div class="empty-state" style="color: var(--danger);">Ошибка связи с сервером. Убедитесь, что server.js запущен.</div>';
+        }
+    }
+
+    async function addCategory() {
+        const name_ru = document.getElementById('cat-name-ru').value;
+        const name_en = document.getElementById('cat-name-en').value;
+        const image = document.getElementById('cat-image').value;
+
+        if(!name_ru) return alert('Введите название!');
+
+        await fetch('/api/admin/categories', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name_ru, name_en, image})
+        });
+
+        // Очистка полей
+        document.getElementById('cat-name-ru').value = '';
+        document.getElementById('cat-name-en').value = '';
+        document.getElementById('cat-image').value = '';
+
+        loadCategories();
+    }
+
+    async function deleteCategory(id) {
+        if(confirm('Удалить категорию и все товары в ней? Это действие необратимо.')) {
+            await fetch(`/api/admin/categories/${id}`, {method: 'DELETE'});
+            loadCategories();
+            document.getElementById('items-section').classList.add('hidden');
+        }
+    }
+
+    function selectCategory(id, name) {
+        currentCatId = id;
+        document.getElementById('current-cat-name').textContent = name;
+        document.getElementById('items-section').classList.remove('hidden');
+        loadItems(id);
+
+        // Скролл вниз к товарам
+        document.getElementById('items-section').scrollIntoView({behavior: 'smooth'});
+    }
+
+    async function loadItems(catId) {
+        const res = await fetch(`/api/items?category_id=${catId}`);
+        const items = await res.json();
+        const list = document.getElementById('admin-items-list');
+        list.innerHTML = '';
+
+        if (items.length === 0) {
+            list.innerHTML = '<div class="empty-state">В этой категории пока нет товаров.</div>';
+            return;
+        }
+
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'admin-list-item';
+            div.innerHTML = `
+                <img src="${item.image || 'https://via.placeholder.com/60?text=Item'}" onerror="this.onerror=null; this.src='https://via.placeholder.com/60?text=Item'">
+                <div class="item-details">
+                    <span class="ru">${item.name_ru}</span>
+                    <span class="price">${item.price} ₽</span>
+                </div>
+                <button onclick="deleteItem(${item.id})" class="admin-btn delete-btn icon-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-trash-2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                </button>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    async function addItem() {
+        if(!currentCatId) return alert('Сначала выберите категорию!');
+
+        const name_ru = document.getElementById('item-name-ru').value;
+        const name_en = document.getElementById('item-name-en').value;
+        const description_ru = document.getElementById('item-desc-ru').value;
+        const description_en = document.getElementById('item-desc-en').value;
+        const price = parseFloat(document.getElementById('item-price').value);
+        const image = document.getElementById('item-image').value;
+
+        if(!name_ru || isNaN(price) || price <= 0) return alert('Требуется название (RU) и корректная цена!');
+
+        await fetch('/api/admin/items', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                category_id: currentCatId,
+                name_ru, name_en, description_ru, description_en, price, image
+            })
+        });
+
+        // Очистка
+        document.getElementById('item-name-ru').value = '';
+        document.getElementById('item-name-en').value = '';
+        document.getElementById('item-desc-ru').value = '';
+        document.getElementById('item-desc-en').value = '';
+        document.getElementById('item-price').value = '';
+        document.getElementById('item-image').value = '';
+
+        loadItems(currentCatId);
+    }
+
+    async function deleteItem(id) {
+        if(confirm('Удалить товар?')) {
+            await fetch(`/api/admin/items/${id}`, {method: 'DELETE'});
+            loadItems(currentCatId);
+        }
+    }
+</script>
+</body>
+</html>
