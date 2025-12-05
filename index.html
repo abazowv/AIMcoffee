@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AIM Coffee</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="language-screen" class="screen">
+    <div class="logo-large">AIM</div>
+    <div class="lang-buttons">
+        <button onclick="setLanguage('ru')">Русский</button>
+        <button onclick="setLanguage('en')">English</button>
+    </div>
+</div>
+
+<div id="menu-screen" class="screen hidden">
+    <header>
+        <button id="back-btn" class="hidden">
+            <svg fill="currentColor" width="24" height="24" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <h1 id="cafe-name">AIM</h1>
+        <title>AIM</title>
+
+        <div id="bonus-display">
+            <span id="bonus-score">0</span> 💰
+        </div>
+    </header>
+
+    <main>
+        <div id="categories" class="categories-grid"></div>
+
+        <div id="promo-carousel" class="carousel-container">
+            <h2 class="section-title">Акции / Promo</h2>
+            <div class="carousel-wrapper">
+                <button class="carousel-arrow prev" onclick="prevSlide()">❮</button>
+                <div class="carousel-track-container" id="carousel-container-box">
+                    <div class="carousel-track" id="carousel-track"></div>
+                </div>
+                <button class="carousel-arrow next" onclick="nextSlide()">❯</button>
+            </div>
+            <div class="carousel-indicators" id="carousel-indicators"></div>
+        </div>
+
+        <div id="items" class="items-list hidden"></div>
+    </main>
+
+    <button id="play-btn" onclick="openGame()">
+        <span class="play-icon">🦖</span>
+        <span class="play-text">Игра</span>
+    </button>
+</div>
+
+<div id="game-modal" class="modal hidden">
+    <div class="modal-content">
+        <button class="close-game" onclick="closeGame()">×</button>
+
+        <div id="game-start-screen" class="game-ui-layer">
+            <div class="game-logo">🦖</div>
+            <h2 id="game-title">Dino Run</h2>
+            <p id="game-desc">Жми, чтобы прыгать!<br>Избегай кактусов.</p>
+            <div class="score-pill">🏆 Record: <span id="high-score">0</span></div>
+            <button onclick="startGame()" class="game-btn-primary">START</button>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+
+        <div id="game-over-screen" class="game-ui-layer hidden">
+            <h2>Game Over</h2>
+            <p id="game-over-reason" style="margin-bottom:10px; color:#ff6b6b; font-size: 0.9rem;">...</p>
+            <div class="result-score">
+                <span>+<span id="current-score">0</span></span>
+                <small>бонусов</small>
+            </div>
+            <div class="game-actions">
+                <button onclick="startGame()" class="game-btn-primary">Replay</button>
+                <button onclick="closeGame()" class="game-btn-secondary">Exit</button>
+            </div>
+        </div>
+
+        <div id="score-fx" class="hidden">+1</div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
