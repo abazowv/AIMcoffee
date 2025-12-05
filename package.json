@@ -1,0 +1,13 @@
+{
+  "name": "ayla-coffee-v3",
+  "version": "3.0.0",
+  "description": "AYLA Coffee Menu ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "sqlite3": "^5.1.7"
+  }
+}
