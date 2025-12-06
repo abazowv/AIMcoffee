@@ -38,7 +38,11 @@ function setLanguage(lang) {
     document.getElementById('game-desc').innerHTML = isRu
         ? 'Тапай чтобы прыгать 🦖.<br>Избегай кактусов 🌵.'
         : 'Tap to jump 🦖.<br>Avoid the cactus 🌵.';
-    document.querySelector('.section-title').textContent = isRu ? 'Акции' : 'Promo';
+
+    // Безопасная проверка, если элемент еще не загружен
+    const promoTitle = document.querySelector('.section-title');
+    if(promoTitle) promoTitle.textContent = isRu ? 'Акции' : 'Promo';
+
 
     initCarousel();
     loadCategories();
@@ -100,7 +104,9 @@ async function loadCategories() {
     container.classList.remove('hidden');
     document.getElementById('promo-carousel').classList.remove('hidden');
     document.getElementById('items').classList.add('hidden');
-    toggleBackButton(true);
+
+    // ИЗМЕНЕНИЕ: Скрываем кнопку "Назад" в шапке на главном экране меню
+    toggleBackButton(false);
     historyStack = [];
 
     container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; color:#666;">Loading...</div>';
@@ -135,14 +141,21 @@ async function loadCategories() {
 
 async function loadItems(catId, catName) {
     historyStack.push('categories');
-    toggleBackButton(true);
+    // Теперь кнопка "Назад" в шапке всегда видна, если мы не на экране выбора языка
+    // toggleBackButton(true); // Убрано, т.к. мы используем кнопку внутри контента
     document.getElementById('categories').classList.add('hidden');
     document.getElementById('promo-carousel').classList.add('hidden');
     const container = document.getElementById('items');
     container.classList.remove('hidden');
 
+    const backText = currentLang === 'ru' ? '❮ Назад' : '❮ Back';
+
+    // ИЗМЕНЕНИЕ: Добавление кнопки "Назад" в контент
     container.innerHTML = `
-        <h2 class="section-title">${catName}</h2>
+        <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 25px; max-width:900px; margin: 0 auto;">
+             <button onclick="goBack()" class="inline-back-btn" style="background:none; border:1px solid var(--accent); color:var(--accent); padding:8px 16px; border-radius:15px; cursor:pointer; font-weight:600; font-size:0.9rem;">${backText}</button>
+             <h2 class="section-title" style="margin:0; text-align:right;">${catName}</h2>
+        </div>
         <div id="items-list" class="items-list-container"><div style="text-align:center;">Loading...</div></div>
     `;
 
@@ -182,6 +195,8 @@ function goBack() {
         document.getElementById('items').classList.add('hidden');
         document.getElementById('categories').classList.remove('hidden');
         document.getElementById('promo-carousel').classList.remove('hidden');
+        // На экране категорий стрелка в шапке скрывается, т.к. есть кнопка "Игра"
+        toggleBackButton(false);
     } else {
         document.getElementById('menu-screen').classList.add('hidden');
         document.getElementById('language-screen').classList.remove('hidden');
@@ -199,7 +214,7 @@ function toggleBackButton(show) {
 
 
 // ==========================================
-// === ИГРА: DINO RUN (ПОЛНОСТЬЮ НОВАЯ) ===
+// === ИГРА: DINO RUN (С ИСПРАВЛЕНИЕМ ОТРАЖЕНИЯ) ===
 // ==========================================
 
 const canvas = document.getElementById('game-canvas');
@@ -234,8 +249,10 @@ function openGame() {
 
     // Адаптация размера canvas
     const modalContent = document.querySelector('.modal-content');
-    canvas.width = modalContent.clientWidth;
-    canvas.height = 300; // Фиксированная высота для игры
+    if(canvas && modalContent) {
+        canvas.width = modalContent.clientWidth;
+        canvas.height = 300; // Фиксированная высота для игры
+    }
 
     window.addEventListener('resize', resizeCanvas);
 }
@@ -249,7 +266,7 @@ function closeGame() {
 
 function resizeCanvas() {
     const modalContent = document.querySelector('.modal-content');
-    if (canvas) {
+    if (canvas && modalContent) {
         canvas.width = modalContent.clientWidth;
     }
 }
@@ -379,7 +396,6 @@ function draw() {
     ctx.save();
 
     // 2. Сдвигаем начало координат к центру Дино (для корректного отражения)
-    // Устанавливаем точку отражения: x + половина ширины
     ctx.translate(dino.x + dino.width / 2, 0);
 
     // 3. Отражаем по горизонтали
@@ -387,19 +403,16 @@ function draw() {
 
     // 4. Рисуем Динозаврика
     ctx.font = "40px Arial";
-    ctx.textAlign = "center"; // Центрируем текст относительно новой оси X
+    ctx.textAlign = "center";
     ctx.textBaseline = "top";
 
     // Эффект бега (покачивание)
     let bounce = 0;
     if(dino.grounded) {
-        // Умножаем на 0.3 для более плавной анимации
         bounce = Math.sin(frame * 0.3) * 2;
     }
 
-    // Рисуем текст в новых координатах.
-    // Поскольку мы уже сдвинулись и отразились, нам нужно вернуться на половину ширины назад,
-    // и установить X = 0 (точка центра)
+    // Рисуем текст в новых координатах. X=0 - центр отражения
     ctx.fillText(dino.icon, 0, dino.y + bounce);
 
     // 5. Восстанавливаем предыдущее состояние Canvas (Сброс трансформации)
